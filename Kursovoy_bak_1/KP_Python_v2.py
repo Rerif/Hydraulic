@@ -49,6 +49,8 @@ dx = l/cell_count
 
 pole = [Yacheyka(i, 0, (P01+P02)/2, rho) for i in range(cell_count)]
 
+# начальные условия
+ei_n = 0
 # Main cycle.                            
 while t<=te:                                 
 	P1 = P01*math.cos(w1*t)+P0
@@ -57,44 +59,94 @@ while t<=te:
 	#T2 = T02*math.cos(w2*t)+T0
 	pole[0].change_pressure(P1)
 	pole[cell_count-1].change_pressure(P2)
+
+
+
+
 	
 
 
 
-	# начальные условия
-
 	for j in range(cell_count):
 		# первый этап
-
+		yacheyka = pole[j]
 		# параметры газа относящиеся к границам ячеек
-		Pi_plus_05_n = (Pi_n+Pi_plus_1_n)/2
+		# Pi_plus_05_n = (Pi_n+Pi_plus_1_n)/2
+		Pi_n = pole[j].P
+		Wi_n = pole[j].W
+		# граничные условия 1
+		if j == 0:
+			Pi_minus_1_n = Pi_n
+			Wi_minus_1_n = Wi_n
+			Pi_plus_1_n = pole[j+1].P
+			Wi_plus_1_n = pole[j+1].W
+			prev_yacheyka = pole[j]
+
+		elif j == cell_count-1:
+			Pi_plus_1_n = Pi_n
+			Wi_plus_1_n = Wi_n
+			Pi_minus_1_n = pole[j-1].P
+			Wi_minus_1_n = pole[j-1].W
+			next_yacheyka = pole[j]
+
+		else:
+			prev_yacheyka = pole[j-1]
+			next_yacheyka = pole[j+1]
+			Pi_plus_1_n = pole[j+1].P 
+			Pi_minus_1_n = pole[j-1].P
+			Wi_plus_1_n = pole[j+1].W
+			Wi_minus_1_n = pole[j-1].W
+
 		Pi_minus_05_n = (Pi_n+Pi_minus_1_n)/2
+		Pi_plus_05_n = (Pi_n+Pi_plus_1_n)/2
+
 		Wi_plus_05_n = (Wi_n + Wi_plus_1_n)/2
 		Wi_minus_05_n = (Wi_n + Wi_minus_1_n)/2
 
 		# промежуточные значения (значения на первом этапе) скорости и энергии газа
 		# на временном слое n+1
-		Wi_n_plus_1 = Wi_n - ((Pi_plus_05-Pi_minus_05)/dx)*(dt/rho)
-		ei_n_plus_1 = ei_n - ((Pi_plus_05*Wi_plus_05-Pi_minus_05*Wi_minus_05)/dx)*(dt/rho)
+		Wi_n_plus_1 = Wi_n - ((Pi_plus_05_n-Pi_minus_05_n)/dx)*(dt/rho)
+		ei_n_plus_1 = ei_n - ((Pi_plus_05_n*Wi_plus_05_n-Pi_minus_05_n*Wi_minus_05_n)/dx)*(dt/rho)
+
+		yacheyka.change_speed(Wi_plus_1_n)
+		yacheyka.change_energy(ei_n_plus_1)
+		
 
 
+	for j in range(cell_count):
+		yacheyka = pole[j]
+		if j == 0:
+			prev_yacheyka = pole[j]
+
+		elif j == cell_count-1:
+			next_yacheyka = pole[j]
+
+		else:
+			prev_yacheyka = pole[j-1]
+			next_yacheyka = pole[j+1]
+
+		Wi_n_plus_1 = yacheyka.W
+		Wi_plus_1_n_plus_1 = next_yacheyka.W
+		Wi_minus_1_n_plus_1 = prev_yacheyka.W
 		# второй этап
 		# потоки массы газа за dt через границы ячейки
-		# масса газа прошедшая через правую границу i-ячейки при площади A
-		    
+
+		# масса газа прошедшая через правую границу i-ячейки при площади A    
 		if Wi_n_plus_1+Wi_plus_1_n_plus_1 > 0:
-			dMi_plus_05 = (rho*(Wi_n_plus_1+Wi_plus_1_n_plus_1)*A*dt)/2
+			yacheyka.change_dM_plus((rho*(Wi_n_plus_1+Wi_plus_1_n_plus_1)*A*dt)/2)
 		else:
-			dMi_plus_05 = (rho*(Wi_n_plus_1+Wi_plus_1_n_plus_1)*A*dt)/2
+			yacheyka.change_dM_plus((rho*(Wi_n_plus_1+Wi_plus_1_n_plus_1)*A*dt)/2)
 
 		# масса газа проходящая через левую границу i-й ячейки
 		if Wi_n_plus_1+Wi_minus_1_n_plus_1 > 0:
-			dMi_minus_05 = (rho*(Wi_n_plus_1+Wi_plus_1_n_plus_1)*A*dt)/2
+			yacheyka.change_dM_minus((rho*(Wi_n_plus_1+Wi_plus_1_n_plus_1)*A*dt)/2)
 		else:
-			dMi_minus_05 = (rho*(Wi_n_plus_1+Wi_minus_1_n_plus_1)*A*dt)/2
+			yacheyka.change_dM_minus((rho*(Wi_n_plus_1+Wi_minus_1_n_plus_1)*A*dt)/2)
 		    
-		# третий этап
-		    
+	
+
+	# третий этап
+	for i in range(cell_count-1):	    
 		rhoi_n_plus_1 = rhoi + (dMi_minus_05 - dMi_plus_05)/(A*dx)
 		Wi_n_plus_1 = rhoi_n * Wi_n / rhoi_n_plus_1 + (abs(dMi_minus_05_n)*Wi_minus_05_n_minus_1 - abs(dMi_plus_05_n) * Wi_plus_05_n_plus_1)/(rhoi_n_plus_1*A*dx)
 		ei_n_plus_1 = rhoi_n * ei_n / rhoi_n_plus_1 + (dMi_minus_05_n * ei_minus_05_n_plus_1 - dMi_plus_05_n * ei_plus_05_n_plus_1)/(rhoi_n_plus_1 * A * dx)
