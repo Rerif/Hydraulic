@@ -17,35 +17,16 @@ w1 = 70
 w2 = 100
 d = 0.3
 l = 0.2
-k = 0.001
-D1 = 0.6
-D2 = 0.9 
 rhoi = 1000
 te = 0.1
 # площадь канала
 A = math.pi * d * d / 4
 # Coefficients of local resistance calculation.
-# From left to right.
-n1 = (d**2)/(D1**2)                
-eps1 = 0.57+(0.043/(1.1-n1))
-ksi11 = ((1-eps1)/(eps1))**2
-ksi21 = ((d**2)/(D2**2)-1)**2
-# From right to left.
-n2 = (d**2)/(D2**2)               
-eps2 = 0.57+(0.043/(1.1-n2))
-ksi12 = ((1-eps2)/eps2)**2
-ksi22 = ((d**2)/(D1**2)-1)**2
-# Full resistance.
-ksi1 = ksi11+ksi21                 
-ksi2 = ksi12+ksi22
-# First conditions.                 
 t = 0
 dt = te/n
 # для второго способа
 M1 = 0
 M2 = 0
-M = 0
-dM = 0
 dx = l/cell_count
 
 pole = [Yacheyka(i, 0, (P01+P02)/2, rhoi, (T01+T02)/2) for i in range(cell_count)]

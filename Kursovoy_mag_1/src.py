@@ -1,54 +1,92 @@
 import math
 
 
-delta_1 = 50
-delta_2 = 70
-pnn = 0.4
-pnk = 0.4
-nob = 1000
+delta_1 = 50*10**(-6)
+delta_2 = 70*10**(-6)
+pn_nasosa = 0.4 * 10**6
+pvs_nasosa = 100000
+pn_kompressora = 0.4 * 10**6
+pvs_kompressora = 100000
+
+n = 1000
+rho = 1000
+n = 1000
+muw =  8.90*10**(-4)
+omega = math.pi*n/30
+k = 1.4
 a = 0
-dpnk = 0
-dpvsk = 0
-dpnn = 0
-dpbsn = 0
+dpn_kompressora = 0
+
+dpvs_kompressora = 0
+dpn_nasosa = 0
+dpvs_nasosa = 0
 Sh = 0.045
 dc = 0.04
-lyambda = 0.25
+
 l1 = Sh
 l2 = Sh
 lp = Sh
+l1_0 = Sh
+l2_0 = Sh
+lyambda = Sh/(2*l1)
+
+A = math.pi * dc * dc / 4
+full_pfi = 360
+number_of_iterations = 720
+dpfi = full_pfi / number_of_iterations
 
 delta_1_in_3 = delta_1**3
 delta_2_in_3 = delta_2**3
 
-#Q1 = (math.pi * dc * delta_1_in_3*(p1-p3)) / (12*muw*l1)
-#Q2 = (math.pi * dc * delta_1_in_3*(p3-p2)) / (12*muw*l2)
-p1 = pvsk*(Vvs/V1)**k
-p3 = ((delta_1_in_3/l1)*p1 + (delta_2_in_3/l2)*p2)/(delta_1_in_3/l1 + delta_2_in_3/l2)
-M1 = pw * (math.pi*dc*delta_1_in_3/(12*muw*omega))*integral(p1, p3, l1)
+Vh = A*Sh
+Vm = Vh*0.05
+V0 = Vh + Vm
 
-#1.Процесс сжатия
-
-Vvs = Vh + Vmk
-V1 = (Vh/2)*((1-math.cos(fi)) + (lyambda_1/4)*(1-math.cos(2*fi)))*Vm
-lyambda = Sh/(2*l)
-#2.Процесс нагнетания
-p1 = pnk + dpnk
-#3.Процесс всасывания
-p1 = pvsk + dpvsk
-l1 = l10 + Sh/2*((1-math.cos(fi))+lyambda_1/4*(1-math.cos(2*fi)))
-
-#Опредлим значение давлений в насосной секции
-#1.Процес нагнетания
-p2 = pnn + dpnn
-#2. Процесс всасывания
-p2 = pbsn + dpvsn
-l2 = l20 + Sh/2*((1-math.cos(fi))+lyambda_1/4*(1-math.cos(2*fi)))
-M1 = pw * (math.pi*dc*delta_2_in_3/(12*muw*omega))*integral(p2, p3, l2)
+dM1 = 0
+dM2 = 0
+M1 = 0
+M2 = 0
 
 
+for i in range(number_of_iterations + 1):
+	pfi_i = i*dpfi
+	pfi_i_kompressora = (pfi_i)*math.pi/180
+	pfi_i_nasosa = (pfi_i + 180)*math.pi/180
+	# нагнетание жидкости в насосе, всасывание газа в компрессоре
+	if pfi_i < 180:
+		# процесс нагнетания жидкости
+		p2 = pn_nasosa + dpn_nasosa
+		# процесс всасывания газа
+		p1 = pvs_kompressora + dpvs_kompressora
+		# комп секция
+		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
+		# насосная секция 
+		l2 = l2_0 + (Sh/2)*((1-math.cos(pfi_i_nasosa)) + (lyambda/4) * (1-math.cos(2*pfi_i_nasosa)))
+		# давление в щели
+		p3 = (((delta_1_in_3/l1)*p1) + ((delta_2_in_3/l2)*p2))/((delta_1_in_3/l1)+(delta_2_in_3/l2))
+		# масса жидкости из насоса в компрессор
+		dM2 = rho * ((math.pi * dc * delta_2_in_3)/(12*muw*omega))*((p2 - p3)/l2)*dpfi
+		M2 += dM2
+	# всасывание жидкости в насосе, нагнетание или сжатие газа в компрессоре
+	else:
+		# давление в насосе
+		p2 = pvs_nasosa + dpn_nasosa
+		# давление в компрессоре
+		V1 = (Vh/2)*((1-math.cos(pfi_i)) + (lyambda/4)*(1-math.cos(2*pfi_i))) + Vm
+		p1 = pvs_kompressora * (V0/V1)**k
+		if p1 >= pn_kompressora:	
+			p1 = pn_kompressora + dpn_kompressora	
+		# комп секция
+		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
+		# насосная секция 
+		l2 = l2_0 + (Sh/2)*((1-math.cos(pfi_i_nasosa)) + (lyambda/4) * (1-math.cos(2*pfi_i_nasosa)))
+		p3 = (((delta_1_in_3/l1)*p1) + ((delta_2_in_3/l2)*p2))/((delta_1_in_3/l1)+(delta_2_in_3/l2))
+		# масса жидкости из компрессора в насос
+		dM1 = rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))*((p1 - p3)/l1)*dpfi
+		M1 += dM2
 
 
-
-
+#print(pfi_i, dpfi)
+print(M2/M1)
+print(M2, M1)
 
