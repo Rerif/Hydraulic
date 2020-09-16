@@ -1,25 +1,38 @@
 import math
+import matplotlib.pyplot as plt
 
 
+
+def obem(pfi):
+	v = omega * (Sh/2) * math.sin(pfi)
+	dV = A*dt*v
+	return dV
+
+# зазор со стороны компрессорной полости
 delta_1 = 50*10**(-6)
+# зазор со стороны насосной полости
 delta_2 = 70*10**(-6)
+delta_1_in_3 = delta_1**3
+delta_2_in_3 = delta_2**3
 pn_nasosa = 0.4 * 10**6
 pvs_nasosa = 100000
 pn_kompressora = 0.4 * 10**6
 pvs_kompressora = 100000
-
-n = 1000
-rho = 1000
-n = 1000
-muw =  8.90*10**(-4)
-omega = math.pi*n/30
-k = 1.4
-a = 0
 dpn_kompressora = 0
-
 dpvs_kompressora = 0
 dpn_nasosa = 0
 dpvs_nasosa = 0
+
+rho = 1000
+muw =  8.90*10**(-4)
+
+n = 1000
+T = (1/n*60)
+omega = math.pi*n/30
+
+k = 1.4
+a = 0
+
 Sh = 0.045
 dc = 0.04
 
@@ -30,24 +43,28 @@ l1_0 = Sh
 l2_0 = Sh
 lyambda = Sh/(2*l1)
 
+# площади полости
 A = math.pi * dc * dc / 4
 full_pfi = 360
-number_of_iterations = 720
+number_of_iterations = 360
 dpfi = full_pfi / number_of_iterations
+dt = T / number_of_iterations
 
-delta_1_in_3 = delta_1**3
-delta_2_in_3 = delta_2**3
-
+# рабочий объем полости
 Vh = A*Sh
 Vm = Vh*0.05
 V0 = Vh + Vm
-
+Vnasosa_i = 0
+Vkompressora_i = 0
 dM1 = 0
 dM2 = 0
 M1 = 0
 M2 = 0
 
-
+davlenie_nasosa = []
+davlenie_kompressora = []
+obem_nasosa = []
+obem_kompressora = []
 for i in range(number_of_iterations + 1):
 	pfi_i = i*dpfi
 	pfi_i_kompressora = (pfi_i)*math.pi/180
@@ -56,8 +73,10 @@ for i in range(number_of_iterations + 1):
 	if pfi_i < 180:
 		# процесс нагнетания жидкости
 		p2 = pn_nasosa + dpn_nasosa
+		davlenie_nasosa.append(p2)
 		# процесс всасывания газа
 		p1 = pvs_kompressora + dpvs_kompressora
+		davlenie_kompressora.append(p1)
 		# комп секция
 		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
 		# насосная секция 
@@ -71,11 +90,15 @@ for i in range(number_of_iterations + 1):
 	else:
 		# давление в насосе
 		p2 = pvs_nasosa + dpn_nasosa
+		davlenie_nasosa.append(p2)
 		# давление в компрессоре
-		V1 = (Vh/2)*((1-math.cos(pfi_i)) + (lyambda/4)*(1-math.cos(2*pfi_i))) + Vm
-		p1 = pvs_kompressora * (V0/V1)**k
+		V1 = (Vh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4)*(1-math.cos(2*pfi_i_kompressora))) + Vm
+		p1 = pvs_kompressora * ((V0/V1)**k)
+		# если происходит нагнетание
+		#print(p1)
 		if p1 >= pn_kompressora:	
-			p1 = pn_kompressora + dpn_kompressora	
+			p1 = pn_kompressora + dpn_kompressora
+		davlenie_kompressora.append(p1)	
 		# комп секция
 		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
 		# насосная секция 
@@ -85,8 +108,39 @@ for i in range(number_of_iterations + 1):
 		dM1 = rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))*((p1 - p3)/l1)*dpfi
 		M1 += dM2
 
+	Vnasosa_i += obem(pfi_i_nasosa)
+	
+	Vkompressora_i += obem(pfi_i_kompressora)
+	obem_nasosa.append(Vnasosa_i)
+	obem_kompressora.append(Vkompressora_i)
 
+print(Vh, max(obem_kompressora))
 #print(pfi_i, dpfi)
 print(M2/M1)
 print(M2, M1)
+'''
+davlenie_nasosa.append(pn_nasosa)
+davlenie_kompressora.append(pvs_kompressora)
+obem_nasosa.append(obem_nasosa[-1])
+obem_kompressora.append(obem_kompressora[0])
+y1 = davlenie_nasosa
+y2 = davlenie_kompressora
+x1 = [abs(i) for i in obem_nasosa]
+x2= obem_kompressora
+
+
+plt.figure(figsize=(9, 9))
+plt.subplot(2, 1, 1)
+plt.plot(x1, y1)               # построение графика
+plt.title("Зависимости давления от объема") # заголовок
+plt.xlabel("V камеры насоса")
+plt.ylabel("давление P1", fontsize=14) # ось ординат
+plt.grid(True)                # включение отображение сетки
+plt.subplot(2, 1, 2)
+plt.plot(x2, y2)               # построение графика
+plt.xlabel("V камеры компрессора", fontsize=14)  # ось абсцисс
+plt.ylabel("Давление P2", fontsize=14) # ось ординат
+plt.grid(True)
+plt.show()'''
+
 
