@@ -8,6 +8,21 @@ def obem(pfi):
 	dV = A*dt*v
 	return dV
 
+def dM_const_l(pump):
+	# комп секция
+	l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
+	# насосная секция 
+	l2 = l2_0 + (Sh/2)*((1-math.cos(pfi_i_nasosa)) + (lyambda/4) * (1-math.cos(2*pfi_i_nasosa)))
+	# давление в щели
+	p3 = (((delta_1_in_3/l1)*p1) + ((delta_1_in_3/l2)*p2))/((delta_1_in_3/l1)+(delta_1_in_3/l2))
+	if pump:
+		return rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))*((p2 - p3)/l2)*dpfi
+	else:
+		return rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))*((p1 - p3)/l1)*dpfi
+
+
+
+
 # зазор со стороны компрессорной полости
 delta_1 = 50*10**(-6)
 # зазор со стороны насосной полости
@@ -61,6 +76,12 @@ dM2 = 0
 M1 = 0
 M2 = 0
 
+dM10 = 0
+dM20 = 0
+M10 = 0
+M20 = 0
+
+
 davlenie_nasosa = []
 davlenie_kompressora = []
 obem_nasosa = []
@@ -71,6 +92,7 @@ for i in range(number_of_iterations + 1):
 	pfi_i_nasosa = (pfi_i + 180)*math.pi/180
 	# нагнетание жидкости в насосе, всасывание газа в компрессоре
 	if pfi_i < 180:
+		pump = True
 		# процесс нагнетания жидкости
 		p2 = pn_nasosa + dpn_nasosa
 		davlenie_nasosa.append(p2)
@@ -83,11 +105,15 @@ for i in range(number_of_iterations + 1):
 		l2 = l2_0 + (Sh/2)*((1-math.cos(pfi_i_nasosa)) + (lyambda/4) * (1-math.cos(2*pfi_i_nasosa)))
 		# давление в щели
 		p3 = (((delta_1_in_3/l1)*p1) + ((delta_2_in_3/l2)*p2))/((delta_1_in_3/l1)+(delta_2_in_3/l2))
-		# масса жидкости из насоса в компрессор
+		# масса жидкости из насоса в компрессор при ступенчатой щели
 		dM2 = rho * ((math.pi * dc * delta_2_in_3)/(12*muw*omega))*((p2 - p3)/l2)*dpfi
 		M2 += dM2
+		dM20 = dM_const_l(pump)
+		#print(M20)
+		M20 += dM20
 	# всасывание жидкости в насосе, нагнетание или сжатие газа в компрессоре
 	else:
+		pump = False
 		# давление в насосе
 		p2 = pvs_nasosa + dpn_nasosa
 		davlenie_nasosa.append(p2)
@@ -107,17 +133,24 @@ for i in range(number_of_iterations + 1):
 		# масса жидкости из компрессора в насос
 		dM1 = rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))*((p1 - p3)/l1)*dpfi
 		M1 += dM2
+		dM10 = dM_const_l(pump)
+		M10 += dM10
 
 	Vnasosa_i += obem(pfi_i_nasosa)
-	
 	Vkompressora_i += obem(pfi_i_kompressora)
 	obem_nasosa.append(Vnasosa_i)
 	obem_kompressora.append(Vkompressora_i)
 
-print(Vh, max(obem_kompressora))
+f1 = M20/M10
+f2 = M2/M1
+f3 = f2/f1
+print("M20 = ", M20, "M10 = ", M10)
+print("f1 = M20/M10 =", f1)
 #print(pfi_i, dpfi)
-print(M2/M1)
-print(M2, M1)
+print("M2 = ", str(M2)+",", "M1 = ", M1)
+print("f2 = M2/M1 = ", f2)
+
+print("f3 = f2/f1", f3)
 '''
 davlenie_nasosa.append(pn_nasosa)
 davlenie_kompressora.append(pvs_kompressora)
