@@ -156,15 +156,16 @@ x1 = [abs(i) for i in obem_nasosa]
 x2= obem_kompressora
 
 
-plt.figure(figsize=(9, 9))
+
+plt.figure(figsize=(7, 7))
 plt.subplot(2, 1, 1)
-plt.plot(x1, y1)               # построение графика
+plt.plot(x1, y1, linewidth=3.3)               # построение графика
 plt.title("Зависимости давления от объема") # заголовок
 plt.xlabel("V камеры насоса")
 plt.ylabel("давление P2(насоса)", fontsize=14) # ось ординат
 plt.grid(True)                # включение отображение сетки
 plt.subplot(2, 1, 2)
-plt.plot(x2, y2)               # построение графика
+plt.plot(x2, y2, linewidth=3.3)               # построение графика
 plt.xlabel("V камеры компрессора", fontsize=14)  # ось абсцисс
 plt.ylabel("Давление P1(компрессора)", fontsize=14) # ось ординат
 plt.grid(True)
