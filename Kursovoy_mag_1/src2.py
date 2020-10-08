@@ -8,11 +8,13 @@ def obem(pfi):
 	dV = A*dt*v
 	return dV
 
+
 def dM_delta_const(isPump):
 	if isPump:
 		return p2 - p1
 	else:
 		return p1 - p2
+
 
 # зазор со стороны компрессорной полости
 delta_1 = 50*10**(-6)
@@ -42,9 +44,7 @@ a = 0
 Sh = 0.045
 dc = 0.04
 
-l1 = Sh
-l2 = Sh
-lp = Sh
+
 l1_0 = Sh
 l2_0 = Sh
 lyambda = 0.25
@@ -52,8 +52,9 @@ lyambda = 0.25
 # площади полости
 A = math.pi * dc * dc / 4
 full_pfi = 360
-number_of_iterations = 360
-dpfi = full_pfi / number_of_iterations
+# метод расчета
+dpfi = 0.5
+number_of_iterations = full_pfi//dpfi
 dt = T / number_of_iterations
 
 # рабочий объем полости
@@ -62,13 +63,10 @@ Vm = Vh*0.05
 V0 = Vh + Vm
 Vnasosa_i = 0
 Vkompressora_i = 0
-dM1 = 0
-dM2 = 0
+
 M1 = 0
 M2 = 0
 
-dM10 = 0
-dM20 = 0
 M10 = 0
 M20 = 0
 
@@ -77,13 +75,16 @@ davlenie_nasosa = []
 davlenie_kompressora = []
 obem_nasosa = []
 obem_kompressora = []
+pfi_i = 0
 pfi_i_k = []
 pfi_i_n = []
 list_pfi_i = []
-for i in range(number_of_iterations + 1):
-	# текущий угол поворота вала
-	pfi_i = i*dpfi
+list_l1 = []
+list_l2 = []
+list_lp = []
+while pfi_i<= full_pfi:
 	# угол поворота в радианах
+	pfi_i_rad = (pfi_i)*math.pi/180
 	pfi_i_kompressora = (pfi_i)*math.pi/180
 	pfi_i_nasosa = (pfi_i + 180)*math.pi/180
 	list_pfi_i.append(pfi_i)
@@ -97,18 +98,21 @@ for i in range(number_of_iterations + 1):
 		p1 = pvs_kompressora + dpvs_kompressora
 		davlenie_kompressora.append(p1)
 		# комп секция
-		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
-		# насосная секция 
-		l2 = l2_0 + (Sh/2)*((1-math.cos(pfi_i_nasosa)) + (lyambda/4) * (1-math.cos(2*pfi_i_nasosa)))
-		hhh = 0
+		
+		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_rad)) + (lyambda/4) * (1-math.cos(2*pfi_i_rad)))
+		# насосная секция
+		l2 = Sh - l1
+		l2 = l2_0 - (Sh/2)*((1-math.cos(pfi_i_rad)) + (lyambda/4) * (1-math.cos(2*pfi_i_rad)))
+		
+		if l1==0.0:
+			l1=0.00001
+		if l2==0.0:
+			l2=0.00001
 		# давление в щели
 		p3 = (((delta_1_in_3/l1)*p1) + ((delta_2_in_3/l2)*p2))/((delta_1_in_3/l1)+(delta_2_in_3/l2))
 		# масса жидкости из насоса в компрессор при ступенчатой щели
-		dM2 = rho * ((math.pi * dc * delta_2_in_3)/(12*muw*omega))*((p2 - p3)/l2)
-		M2 += dM2
-
-		dM20 = dM_delta_const(pump)
-		M20 += dM20
+		M2 += ((p2 - p3)/l2)
+		M20 += dM_delta_const(pump)
 
 	# всасывание жидкости в насосе, нагнетание или сжатие газа в компрессоре
 	else:
@@ -124,20 +128,38 @@ for i in range(number_of_iterations + 1):
 			p1 = pn_kompressora + dpn_kompressora
 		davlenie_kompressora.append(p1)	
 		# комп секция
-		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_kompressora)) + (lyambda/4) * (1-math.cos(2*pfi_i_kompressora)))
-		# насосная секция 
-		l2 = l2_0 + (Sh/2)*((1-math.cos(pfi_i_nasosa)) + (lyambda/4) * (1-math.cos(2*pfi_i_nasosa)))
+		
+		l1 = l1_0 + (Sh/2)*((1-math.cos(pfi_i_rad)) + (lyambda/4) * (1-math.cos(2*pfi_i_rad)))
+		# насосная секция
+		l2 = Sh - l1
+		l2 = l2_0 - (Sh/2)*((1-math.cos(pfi_i_rad)) + (lyambda/4) * (1-math.cos(2*pfi_i_rad)))
+		
+		if l1==0.0:
+			l1=0.00001
+		if l2==0.0:
+			l2=0.00001
 		p3 = (((delta_1_in_3/l1)*p1) + ((delta_2_in_3/l2)*p2))/((delta_1_in_3/l1)+(delta_2_in_3/l2))
 		# масса жидкости из компрессора в насос
-		dM1 = rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))*((p1 - p3)/l1)
-		M1 += dM1
-		dM10 = dM_delta_const(pump)
-		M10 += dM10
+		M1 += ((p1 - p3)/l1)
+		M10 += dM_delta_const(pump)
+		
 
+	'''if pfi_i<2:
+		print(pfi_i)
+		print(l1)
+		print(l2)
+		print()'''
+		
+	list_l1.append(l1)
+	list_l2.append(l2)
+	list_lp.append(l1+l2)
 	Vnasosa_i += obem(pfi_i_nasosa)
 	Vkompressora_i += obem(pfi_i_kompressora)
 	obem_nasosa.append(Vnasosa_i)
 	obem_kompressora.append(Vkompressora_i)
+	pfi_i += dpfi
+M1 *= rho * ((math.pi * dc * delta_1_in_3)/(12*muw*omega))
+M2 *= rho * ((math.pi * dc * delta_2_in_3)/(12*muw*omega))
 
 f1 = M20/M10
 f2 = M2/M1
@@ -157,11 +179,11 @@ davlenie_kompressora.append(pvs_kompressora)
 obem_nasosa.append(obem_nasosa[-1])
 obem_kompressora.append(obem_kompressora[0])
 
-#list_pfi_i.append(361)
+
 y1 = davlenie_nasosa
 y2 = davlenie_kompressora
-x1 = [abs(i) for i in obem_nasosa]
-x2= obem_kompressora
+x1 = obem_nasosa
+x2 = obem_kompressora
 
 
 
@@ -190,7 +212,8 @@ plt.ylabel("Давления P1 и P2, Па", fontsize=14)
 plt.grid(True)
 plt.show()
 
-#y2.pop()
-#plt.plot(list_pfi_i, y2)
-#plt.show()
 
+plt.plot(list_pfi_i, list_l2)
+plt.plot(list_pfi_i, list_l1)
+plt.plot(list_pfi_i,list_lp)
+plt.show()
